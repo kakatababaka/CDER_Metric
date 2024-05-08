@@ -38,38 +38,35 @@ import numpy as np
 from argparse import ArgumentParser
 from pre_process import rttm_read_cder
 
-def main():
-    parser = ArgumentParser(
-        description='Score diarization from RTTM files.', add_help=True,
-        usage='%(prog)s [options]')
-    parser.add_argument('-s', dest='sys_rttm_fns', help='system RTTM files (default: %(default)s)')
-    parser.add_argument('-r', dest='ref_rttm_fns', help='reference RTTM files (default: %(default)s)')
-    args = parser.parse_args()
+def main(refs_list, hyp_list):
 
-    ref = rttm_read_cder(args.ref_rttm_fns)
-    hyp = rttm_read_cder(args.sys_rttm_fns)
+    CDERS = []
+    for ref_rttm, hyp_rttm in zip(refs_list, hyp_list):
+        ref = rttm_read_cder(ref_rttm)
+        hyp = rttm_read_cder(hyp_rttm)
 
-    CSSDER = CSSDErrorRate()
-    results = []
+        CSSDER = CSSDErrorRate()
+        results = []
 
-    flag = 1
-    for key, val in ref.items():
-        reference = val[1]
-        if key not in hyp:
-            print("Warning:", key, "is missed!")
-            flag = 0
-            continue
+        flag = 1
+        for key, val in ref.items():
+            reference = val[1]
+            if key not in hyp:
+                print("Warning:", key, "is missed!")
+                flag = 0
+                continue
+            else:
+                hypothesis = hyp[key][1]
+                result = CSSDER(reference, hypothesis)
+            #print(key, "CDER = {0:.3f}".format(result))
+            results.append(result)
+
+        if flag:
+            #print("Avg CDER file : {0:.3f}".format(np.mean(results)))
+            CDERS.append(np.mean(results))
         else:
-            hypothesis = hyp[key][1]
-            result = CSSDER(reference, hypothesis)
-        print(key, "CDER = {0:.3f}".format(result))
-        results.append(result)
-
-    if flag:
-        print("Avg CDER : {0:.3f}".format(np.mean(results)))
-    else:
-        print("Avg CDER : Error!")
-
+            print("Avg CDER : Error!")
+    print("Avg CDER : {0:.3f}".format(np.mean(CDERS)))
 
 if __name__ == "__main__":
     main()
